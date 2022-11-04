@@ -1,11 +1,11 @@
-name: Build and Test
+name: Node.js pnpm build, lint and test
 
 on:
   workflow_call:
 
 jobs:
   build-test:
-    name: Build and Test
+    name: Build, Lint and Test
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
