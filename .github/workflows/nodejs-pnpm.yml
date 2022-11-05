@@ -23,18 +23,39 @@ on:
         required: false
         type: string
       node-versions:
+        description: Node.js version JSON array (This is not used when .nvmrc exists)
         default: '[ 14, 16, 18, 19 ]'
         required: false
         type: string
 
 jobs:
+  prepare:
+    name: Determine Node.js version
+    runs-on: ubuntu-latest
+    outputs:
+      node-versions: ${{ steps.extract-node-versions.outputs.out }}
+    steps:
+      - name: Checkout the source
+        uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # tag=v3.1.0
+
+      - id: extract-node-versions
+        run: |
+          (
+            if [[ -r .nvmrc ]]; then
+              echo 'out=["'"$(cat .nvmrc)"'"]'
+            else
+              echo 'out=${{ inputs.node-versions }}'
+            fi
+          )  >> "$GITHUB_OUTPUT"
+
   build-test:
     name: Build, Lint and Test
+    needs: prepare
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: ${{ fromJson(inputs.os) }}
-        node-version: ${{ fromJson(inputs.node-versions) }}
+        node-version: ${{ fromJson(needs.prepare.outputs.node-versions) }}
 
     steps:
       - name: Checkout the source
