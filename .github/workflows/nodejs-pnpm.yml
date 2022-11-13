@@ -4,58 +4,80 @@ on:
   workflow_call:
     inputs:
       build:
-        description: whether it builds your code
+        description: whether it run "pnpm build"
         default: true
         required: false
         type: boolean
       lint:
-        description: whether it lints your code
+        description: whether it run "pnpm lint"
         default: true
         required: false
         type: boolean
       test:
-        description: whether it tests your code
+        description: whether it run "pnpm test"
         default: true
         required: false
         type: boolean
       os:
+        description: OSes (JSON format)
         default: '[ "ubuntu-latest", "windows-latest" ]'
         required: false
         type: string
       node-versions:
-        description: Node.js version JSON array (This is not used when .nvmrc exists)
-        default: '[ 14, 16, 18, 19 ]'
+        description: Enforce Node.js versions (JSON format)
+        default: ""
+        required: false
+        type: string
+      node-version-file:
+        description: Enforce node-version-file of actions/setup-node
+        default: ""
         required: false
         type: string
 
+env:
+  nodejs-default-versions: "[ 14, 16, 18, 19 ]"
+
 jobs:
   prepare:
-    name: Determine Node.js version
+    name: Determine parameters
     runs-on: ubuntu-latest
     outputs:
-      node-versions: ${{ steps.extract-node-versions.outputs.out }}
+      node-version-file: ${{ steps.determine-parameters.outputs.node-version-file }}
+      node-versions: ${{ steps.determine-parameters.outputs.node-versions }}
     steps:
       - name: Checkout the source
         uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # tag=v3.1.0
 
-      - id: extract-node-versions
+      - name: Determine parameters
+        id: determine-parameters
         run: |
           (
-            if [[ -r .nvmrc ]]; then
-              echo 'out=["'"$(cat .nvmrc)"'"]'
+            if [[ '${{ inputs.node-versions }}' != "" ]]; then
+              echo 'node-versions=${{ inputs.node-versions }}'
+            elif [[ '${{ inputs.node-version-file }}' != "" ]]; then
+              echo 'node-version-file=${{ inputs.node-version-file }}'
             else
-              echo 'out=${{ inputs.node-versions }}'
+              if [[ -e .nvmrc ]]; then
+                echo node-version-file=.nvmrc
+              elif [[ -e .node-version ]]; then
+                echo node-version-file=.node-version
+              elif [[ -e package.json && $( jq -r .volta.node < package.json ) != "null" ]]; then
+                echo node-version-file=package.json
+              else
+                echo 'node-versions=${{ env.nodejs-default-versions }}'
+              fi
             fi
-          )  >> "$GITHUB_OUTPUT"
+          ) | tee -a "$GITHUB_OUTPUT"
 
   build-test:
     name: Build, Lint and Test
     needs: prepare
-    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: ${{ fromJson(inputs.os) }}
-        node-version: ${{ fromJson(needs.prepare.outputs.node-versions) }}
+        node-version: ${{ needs.prepare.outputs.node-versions != '' && fromJson(needs.prepare.outputs.node-versions) || fromJson('["Use node-version-file"]')  }}
+
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Checkout the source
@@ -64,10 +86,18 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@c3b53f6a16e57305370b4ae5a540c2077a1d50dd # tag=v2.2.4
 
-      - name: Setup Node.js ${{ matrix.node-version }} on ${{ matrix.os }}
+      - name: Setup a specific version of Node.js
+        if: needs.prepare.outputs.node-versions != ''
         uses: actions/setup-node@8c91899e586c5b171469028077307d293428b516 # tag=v3.5.1
         with:
           node-version: ${{ matrix.node-version }}
+          cache: pnpm
+
+      - name: Setup Node.js with node-version-file
+        if: needs.prepare.outputs.node-versions == ''
+        uses: actions/setup-node@8c91899e586c5b171469028077307d293428b516 # tag=v3.5.1
+        with:
+          node-version-file: ${{ needs.prepare.outputs.node-version-file }}
           cache: pnpm
 
       - name: Install dependencies
