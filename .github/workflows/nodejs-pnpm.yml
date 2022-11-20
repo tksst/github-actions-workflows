@@ -42,13 +42,46 @@ jobs:
     name: Determine parameters
     runs-on: ubuntu-latest
     outputs:
+      job-title: ${{ env.job-title }}
       node-version-file: ${{ steps.determine-parameters.outputs.node-version-file }}
       node-versions: ${{ steps.determine-parameters.outputs.node-versions }}
     steps:
       - name: Checkout the source
         uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # tag=v3.1.0
 
-      - name: Determine parameters
+      - name: Determine job job-title
+        id: determine-title
+        shell: node {0}
+        run: |
+          const { writeFileSync } = require("node:fs");
+
+          const ar = [];
+          if(${{ inputs.build }}){
+            ar.push("Build");
+          }
+          if(${{ inputs.lint }}){
+            ar.push("Lint");
+          }
+          if(${{ inputs.test }}){
+            ar.push("Test");
+          }
+
+          const title = (() => {
+            switch(ar.length){
+              case 0:
+                return "check dependencies";
+              case 1:
+                return ar[0];
+              case 2:
+                return `${ar[0]} and ${ar[1]}`;
+              case 3:
+                return `${ar[0]}, ${ar[1]} and ${ar[2]}`;
+            }
+          })();
+
+          writeFileSync(process.env.GITHUB_ENV, `job-title=${title}`, {flag: "a"});
+
+      - name: Determine Node.js version parameters
         id: determine-parameters
         run: |
           (
@@ -70,7 +103,7 @@ jobs:
           ) | tee -a "$GITHUB_OUTPUT"
 
   build-test:
-    name: Build, Lint and Test
+    name: (${{ needs.prepare.outputs.node-versions != '' && format('{0} on ',matrix.node-version) || '' }}${{ matrix.os }}) ${{ needs.prepare.outputs.job-title }}
     needs: prepare
     strategy:
       matrix:
