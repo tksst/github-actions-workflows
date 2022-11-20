@@ -33,14 +33,31 @@ on:
         default: ""
         required: false
         type: string
+      force:
+        description: run the workflow even if it is skippable
+        default: false
+        required: false
+        type: boolean
 
 env:
   nodejs-default-versions: "[ 14, 16, 18, 19 ]"
 
 jobs:
+  check-skippable:
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    outputs:
+      skippable: ${{ steps.check.outputs.should_skip }}
+    steps:
+      - id: check
+        if: "!inputs.force"
+        uses: fkirc/skip-duplicate-actions@f11521568414503656a5af807dc3018c012552c4 # tag=v5.2.0
+
   prepare:
     name: Determine parameters
     runs-on: ubuntu-latest
+    needs: check-skippable
+    if: needs.check-skippable.outputs.skippable != 'true'
     outputs:
       job-title: ${{ env.job-title }}
       node-version-file: ${{ steps.determine-parameters.outputs.node-version-file }}
