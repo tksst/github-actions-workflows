@@ -1,8 +1,8 @@
 {
   "private": true,
   "scripts": {
-    "lint": "prettier --check .",
-    "fix": "prettier --write ."
+    "lint": "prettier --cache --check .",
+    "fix": "prettier --cache --write ."
   },
   "devDependencies": {
     "@tksst/prettier-config": "1.1.0",
