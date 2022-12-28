@@ -1,23 +1,16 @@
-name: Node.js pnpm build, lint and test
+name: Node.js pnpm
 
 on:
   workflow_call:
     inputs:
-      build:
-        description: whether it run "pnpm build"
-        default: true
-        required: false
-        type: boolean
-      lint:
-        description: whether it run "pnpm lint"
-        default: true
-        required: false
-        type: boolean
-      test:
-        description: whether it run "pnpm test"
-        default: true
-        required: false
-        type: boolean
+      pnpm-commands:
+        default: '[ "build", "lint", "test" ]'
+        description: commands passed for pnpm (JSON format)
+        type: string
+      job-title:
+        default: Build, Lint and Test
+        description: Job title
+        type: string
       os:
         description: OSes (JSON format)
         default: '[ "ubuntu-latest", "windows-latest" ]'
@@ -59,44 +52,11 @@ jobs:
     needs: check-skippable
     if: needs.check-skippable.outputs.skippable != 'true'
     outputs:
-      job-title: ${{ env.job-title }}
       node-version-file: ${{ steps.determine-parameters.outputs.node-version-file }}
       node-versions: ${{ steps.determine-parameters.outputs.node-versions }}
     steps:
       - name: Checkout the source
         uses: actions/checkout@755da8c3cf115ac066823e79a1e1788f8940201b # v3.2.0
-
-      - name: Determine job job-title
-        id: determine-title
-        shell: node {0}
-        run: |
-          const { writeFileSync } = require("node:fs");
-
-          const ar = [];
-          if(${{ inputs.build }}){
-            ar.push("Build");
-          }
-          if(${{ inputs.lint }}){
-            ar.push("Lint");
-          }
-          if(${{ inputs.test }}){
-            ar.push("Test");
-          }
-
-          const title = (() => {
-            switch(ar.length){
-              case 0:
-                return "check dependencies";
-              case 1:
-                return ar[0];
-              case 2:
-                return `${ar[0]} and ${ar[1]}`;
-              case 3:
-                return `${ar[0]}, ${ar[1]} and ${ar[2]}`;
-            }
-          })();
-
-          writeFileSync(process.env.GITHUB_ENV, `job-title=${title}`, {flag: "a"});
 
       - name: Determine Node.js version parameters
         id: determine-parameters
@@ -120,7 +80,7 @@ jobs:
           ) | tee -a "$GITHUB_OUTPUT"
 
   build-test:
-    name: (${{ needs.prepare.outputs.node-versions != '' && format('{0} on ',matrix.node-version) || '' }}${{ matrix.os }}) ${{ needs.prepare.outputs.job-title }}
+    name: (${{ needs.prepare.outputs.node-versions != '' && format('{0} on ',matrix.node-version) || '' }}${{ matrix.os }}) ${{ inputs.job-title }}
     needs: prepare
     strategy:
       matrix:
@@ -153,14 +113,17 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build
-        if: ${{ inputs.build }}
-        run: pnpm build
+      - name: pnpm-commands execution
+        # Specify bash explicitly, since the default shell on Windows is powershell.
+        shell: bash
+        run: |
+          set -e
+          set -u
+          cmds='${{ inputs.pnpm-commands }}'
 
-      - name: Lint
-        if: ${{ inputs.lint }}
-        run: pnpm lint
-
-      - name: Test
-        if: ${{ inputs.test }}
-        run: pnpm test
+          IFS=$'\t'
+          for a in $( echo "$cmds" | jq -r '. | @tsv' ); do
+            echo "----------------------------------------------------------------"
+            echo "pnpm '$a'"
+            pnpm "$a"
+          done

@@ -10,6 +10,6 @@ jobs:
     name: Prettier
     uses: ./.github/workflows/nodejs-pnpm.yml
     with:
-      build: false
-      test: false
+      pnpm-commands: '[ "lint" ]'
+      job-title: Check format
       os: '["ubuntu-latest"]'
