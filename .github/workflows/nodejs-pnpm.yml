@@ -31,6 +31,14 @@ on:
         default: false
         required: false
         type: boolean
+      artifact-path:
+        description: Path to upload as artifact. If not set, do not upload an artifact.
+        required: false
+        type: string
+      artifact-name:
+        description: Artifact name
+        required: false
+        type: string
 
 env:
   nodejs-default-versions: "[ 14, 16, 18, 19 ]"
@@ -57,6 +65,12 @@ jobs:
     steps:
       - name: Checkout the source
         uses: actions/checkout@755da8c3cf115ac066823e79a1e1788f8940201b # v3.2.0
+
+      - name: check parameter artifact-path and artifact-name
+        if: inputs.artifact-path != '' && inputs.artifact-name == ''
+        uses: actions/github-script@d556feaca394842dc55e4734bf3bb9f685482fa0 # v6.3.3
+        with:
+          script: core.setFailed("inputs.artifact-path exists but inputs.artifact-name is empty")
 
       - name: Determine Node.js version parameters
         id: determine-parameters
@@ -127,3 +141,10 @@ jobs:
             echo "pnpm '$a'"
             pnpm "$a"
           done
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@83fd05a356d7e2593de66fc9913b3002723633cb # v3.1.1
+        if: inputs.artifact-path != ''
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: ${{ inputs.artifact-path }}
