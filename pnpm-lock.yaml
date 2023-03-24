@@ -2,24 +2,24 @@ lockfileVersion: 5.4
 
 specifiers:
   '@tksst/prettier-config': 1.1.0
-  prettier: 2.8.1
+  prettier: 2.8.7
 
 devDependencies:
-  '@tksst/prettier-config': 1.1.0_prettier@2.8.1
-  prettier: 2.8.1
+  '@tksst/prettier-config': 1.1.0_prettier@2.8.7
+  prettier: 2.8.7
 
 packages:
 
-  /@tksst/prettier-config/1.1.0_prettier@2.8.1:
+  /@tksst/prettier-config/1.1.0_prettier@2.8.7:
     resolution: {integrity: sha512-ve/6JJ9qjI7sls47YDUgtEBX1k2vXKhnnp8+zAjQogUhFEFRmFrPrANKB4ad0+dRVQgRjF1BBrNiJJEhYFOsmQ==}
     peerDependencies:
       prettier: '*'
     dependencies:
-      prettier: 2.8.1
+      prettier: 2.8.7
     dev: true
 
-  /prettier/2.8.1:
-    resolution: {integrity: sha512-lqGoSJBQNJidqCHE80vqZJHWHRFoNYsSpP9AjFhlhi9ODCJA541svILes/+/1GM3VaL/abZi7cpFzOpdR9UPKg==}
+  /prettier/2.8.7:
+    resolution: {integrity: sha512-yPngTo3aXUUmyuTjeTUT75txrf+aMh9FiD7q9ZE/i6r0bPb22g4FsE6Y338PQX1bmfy08i9QQCB7/rcUAVntfw==}
     engines: {node: '>=10.13.0'}
     hasBin: true
     dev: true
