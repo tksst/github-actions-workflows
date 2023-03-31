@@ -108,7 +108,9 @@ jobs:
         uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # v3.3.0
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@c3b53f6a16e57305370b4ae5a540c2077a1d50dd # tag=v2.2.4
+        uses: tksst/action-setup-pnpm@c51cc03cc33efffbcf10e6f70214c7cec211f89d
+        with:
+          nodejs_bundled: true
 
       - name: Setup a specific version of Node.js
         if: needs.prepare.outputs.node-versions != ''
