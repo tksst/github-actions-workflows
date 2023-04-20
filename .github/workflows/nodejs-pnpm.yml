@@ -41,7 +41,7 @@ on:
         type: string
 
 env:
-  nodejs-default-versions: "[ 14, 16, 18, 19 ]"
+  nodejs-default-versions: "[ 14, 16, 18, 20 ]"
 
 jobs:
   check-skippable:
