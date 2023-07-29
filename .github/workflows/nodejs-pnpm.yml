@@ -3,50 +3,16 @@ name: Node.js pnpm
 on:
   workflow_call:
     inputs:
-      pnpm-commands:
-        default: '[ "build", "lint", "test" ]'
-        description: commands passed for pnpm (JSON format)
-        type: string
-      job-title:
-        default: Build, Lint and Test
-        description: Job title
-        type: string
-      os:
-        description: OSes (JSON format)
-        default: '[ "ubuntu-latest", "windows-latest" ]'
-        required: false
-        type: string
-      node-versions:
-        description: Enforce Node.js versions (JSON format)
-        default: ""
-        required: false
-        type: string
-      node-version-file:
-        description: Enforce node-version-file of actions/setup-node
-        default: ""
-        required: false
-        type: string
       force:
         description: run the workflow even if it is skippable
         default: false
         required: false
         type: boolean
-      artifact-path:
-        description: Path to upload as artifact. If not set, do not upload an artifact.
-        required: false
-        type: string
-      artifact-name:
-        description: Artifact name
-        required: false
-        type: string
-
-env:
-  nodejs-default-versions: "[ 16, 18, 20 ]"
 
 jobs:
   check-skippable:
     continue-on-error: true
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     outputs:
       skippable: ${{ steps.check.outputs.should_skip }}
     steps:
@@ -54,54 +20,32 @@ jobs:
         if: "!inputs.force"
         uses: fkirc/skip-duplicate-actions@12aca0a884f6137d619d6a8a09fcc3406ced5281 # v5.3.0
 
-  prepare:
-    name: Determine parameters
-    runs-on: ubuntu-latest
+  test:
+    name: Test
     needs: check-skippable
     if: needs.check-skippable.outputs.skippable != 'true'
-    outputs:
-      node-version-file: ${{ steps.determine-parameters.outputs.node-version-file }}
-      node-versions: ${{ steps.determine-parameters.outputs.node-versions }}
-    steps:
-      - name: Checkout the source
-        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
-
-      - name: check parameter artifact-path and artifact-name
-        if: inputs.artifact-path != '' && inputs.artifact-name == ''
-        uses: actions/github-script@d7906e4ad0b1822421a7e6a35d5ca353c962f410 # v6.4.1
-        with:
-          script: core.setFailed("inputs.artifact-path exists but inputs.artifact-name is empty")
-
-      - name: Determine Node.js version parameters
-        id: determine-parameters
-        run: |
-          (
-            if [[ '${{ inputs.node-versions }}' != "" ]]; then
-              echo 'node-versions=${{ inputs.node-versions }}'
-            elif [[ '${{ inputs.node-version-file }}' != "" ]]; then
-              echo 'node-version-file=${{ inputs.node-version-file }}'
-            else
-              if [[ -e .nvmrc ]]; then
-                echo node-version-file=.nvmrc
-              elif [[ -e .node-version ]]; then
-                echo node-version-file=.node-version
-              elif [[ -e package.json && $( jq -r .volta.node < package.json ) != "null" ]]; then
-                echo node-version-file=package.json
-              else
-                echo 'node-versions=${{ env.nodejs-default-versions }}'
-              fi
-            fi
-          ) | tee -a "$GITHUB_OUTPUT"
-
-  build-test:
-    name: (${{ needs.prepare.outputs.node-versions != '' && format('{0} on ',matrix.node-version) || '' }}${{ matrix.os }}) ${{ inputs.job-title }}
-    needs: prepare
     strategy:
+      fail-fast: false
       matrix:
-        os: ${{ fromJson(inputs.os) }}
-        node-version: ${{ needs.prepare.outputs.node-versions != '' && fromJson(needs.prepare.outputs.node-versions) || fromJson('["Use node-version-file"]')  }}
+        os:
+          - ubuntu-22.04
+          - windows-latest
+        node-version:
+          - 16
+          - 18
+          - 20
+        experimental:
+          - false
+        include:
+          - os: ubuntu-22.04
+            node-version: 21-nightly
+            experimental: true
+          - os: windows-latest
+            node-version: 21-nightly
+            experimental: true
 
     runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.experimental }}
 
     steps:
       - name: Checkout the source
@@ -112,41 +56,50 @@ jobs:
         with:
           standalone: true
 
-      - name: Setup a specific version of Node.js
-        if: needs.prepare.outputs.node-versions != ''
+      - name: Setup Node.js
         uses: actions/setup-node@e33196f7422957bea03ed53f6fbb155025ffc7b8 # v3.7.0
         with:
           node-version: ${{ matrix.node-version }}
           cache: pnpm
 
-      - name: Setup Node.js with node-version-file
-        if: needs.prepare.outputs.node-versions == ''
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - run: pnpm test
+
+  build-lint:
+    name: Build and Lint
+    needs: check-skippable
+    if: needs.check-skippable.outputs.skippable != 'true'
+
+    # Using matrix strategy, OS and Node version will be displayed in a title of a job.
+    strategy:
+      matrix:
+        os:
+          - ubuntu-22.04
+        node-version:
+          - 18
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout the source
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@d882d12c64e032187b2edb46d3a0d003b7a43598 # v2.4.0
+        with:
+          standalone: false
+
+      - name: Setup Node.js
         uses: actions/setup-node@e33196f7422957bea03ed53f6fbb155025ffc7b8 # v3.7.0
         with:
-          node-version-file: ${{ needs.prepare.outputs.node-version-file }}
+          node-version: ${{ matrix.node-version }}
           cache: pnpm
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: pnpm-commands execution
-        # Specify bash explicitly, since the default shell on Windows is powershell.
-        shell: bash
-        run: |
-          set -e
-          set -u
-          cmds='${{ inputs.pnpm-commands }}'
+      - run: pnpm build
 
-          IFS=$'\t'
-          for a in $( echo "$cmds" | jq -r '. | @tsv' ); do
-            echo "----------------------------------------------------------------"
-            echo "pnpm '$a'"
-            pnpm "$a"
-          done
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
-        if: inputs.artifact-path != ''
-        with:
-          name: ${{ inputs.artifact-name }}
-          path: ${{ inputs.artifact-path }}
+      - run: pnpm lint

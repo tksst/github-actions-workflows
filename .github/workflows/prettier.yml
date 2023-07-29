@@ -6,10 +6,25 @@ on:
   push:
 
 jobs:
-  prettier:
-    name: Prettier
-    uses: ./.github/workflows/nodejs-pnpm.yml
-    with:
-      pnpm-commands: '[ "lint" ]'
-      job-title: Check format
-      os: '["ubuntu-latest"]'
+  check-skippable:
+    continue-on-error: true
+    runs-on: ubuntu-22.04
+    outputs:
+      skippable: ${{ steps.check.outputs.should_skip }}
+    steps:
+      - id: check
+        uses: fkirc/skip-duplicate-actions@12aca0a884f6137d619d6a8a09fcc3406ced5281 # v5.3.0
+
+  lint:
+    name: Lint
+    needs: check-skippable
+    if: needs.check-skippable.outputs.skippable != 'true'
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout the source
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+
+      - uses: ./actions/setup-pnpm-project/
+
+      - run: pnpm lint
