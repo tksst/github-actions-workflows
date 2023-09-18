@@ -26,9 +26,23 @@ jobs:
         uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
         with:
           show-progress: false
-          # This checkout is only to get the next action, so no submodule is needed.
-          submodules: false
+          submodule: recursive
 
-      - uses: ./actions/setup-pnpm-project/
+      - name: Setup pnpm
+        uses: pnpm/action-setup@d882d12c64e032187b2edb46d3a0d003b7a43598 # v2.4.0
+        with:
+          standalone: true
+
+      - id: node-version-detection
+        uses: ./actions/detect-node-version-file/
+
+      - name: Setup Node.js
+        uses: actions/setup-node@5e21ff4d9bc1a8cf6de233a3057d20ec6b3fb69d # v3.8.1
+        with:
+          node-version-file: ${{ steps.node-version-detection.outputs.node-version-file }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - run: pnpm lint
