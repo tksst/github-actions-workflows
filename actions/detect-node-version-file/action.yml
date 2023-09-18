@@ -1,29 +1,15 @@
-name: Setup pnpm project
+name: Detect Node.js version file
 
-description: checkout a source, setup pnpm and Node.js and install dependencies
+description: Detect Node.js version file
 
-inputs:
-  node-version:
-    description: Node.js version
-    required: false
+outputs:
   node-version-file:
-    description: Node.js version file
-    required: false
+    description: Detected "node-version-file"
+    value: ${{ steps.determine-parameters.outputs.node-version-file }}
 
 runs:
   using: composite
   steps:
-    - name: Checkout the source
-      uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
-      with:
-        show-progress: false
-        submodules: recursive
-
-    - name: Setup pnpm
-      uses: pnpm/action-setup@d882d12c64e032187b2edb46d3a0d003b7a43598 # v2.4.0
-      with:
-        standalone: true
-
     - name: Determine Node.js version parameters
       id: determine-parameters
       run: |
@@ -31,39 +17,20 @@ runs:
 
         echo "::group::Determine Node.js version parameters"
 
-        node_version=${{ inputs.node-version }}
-        node_version_file=${{ inputs.node-version-file }}
-
-        if [[ $node_version == "" && $node_version_file == "" ]]; then
-          echo "Attempting to detect Node.js version file"
-          if [[ -e .nvmrc ]]; then
-            node_version_file=.nvmrc
-          elif [[ -e .node-version ]]; then
-            node_version_file=.node-version
-          elif [[ -e package.json && $( jq -r .volta.node < package.json ) != "null" ]]; then
-            node_version_file=package.json
-          else
-            echo "No Node.js version file detected"
-          fi
+        echo "Attempting to detect Node.js version file"
+        if [[ -e .nvmrc ]]; then
+          node_version_file=.nvmrc
+        elif [[ -e .node-version ]]; then
+          node_version_file=.node-version
+        elif [[ -e package.json && $( jq -r .volta.node < package.json ) != "null" ]]; then
+          node_version_file=package.json
+        else
+          echo "No Node.js version file detected"
         fi
 
         echo "Result:"
 
-        (
-          echo node-version=$node_version
-          echo node-version-file=$node_version_file
-        ) | tee -a "$GITHUB_OUTPUT"
+        echo node-version-file=$node_version_file | tee -a "$GITHUB_OUTPUT"
 
         echo "::endgroup::"
-      shell: bash
-
-    - name: Setup Node.js
-      uses: actions/setup-node@5e21ff4d9bc1a8cf6de233a3057d20ec6b3fb69d # v3.8.1
-      with:
-        node-version: ${{ steps.determine-parameters.outputs.node-version }}
-        node-version-file: ${{ steps.determine-parameters.outputs.node-version-file }}
-        cache: pnpm
-
-    - name: Install dependencies
-      run: pnpm install --frozen-lockfile
       shell: bash
