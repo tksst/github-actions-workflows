@@ -2,17 +2,15 @@ name: Actionlint
 
 on:
   workflow_call:
-  workflow_dispatch:
-  push:
-    paths:
-      - ".github/workflows/**"
-  pull_request:
-    paths:
-      - ".github/workflows/**"
+    inputs:
+      runs-on:
+        required: false
+        type: string
+        default: ubuntu-latest
 
 jobs:
   actionlint:
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runs-on }}
     steps:
       - name: Checkout the source
         uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
