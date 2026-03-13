@@ -20,7 +20,7 @@ runs:
         submodules: recursive
 
     - name: Setup pnpm
-      uses: pnpm/action-setup@d882d12c64e032187b2edb46d3a0d003b7a43598 # v2.4.0
+      uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
       with:
         standalone: true
 
@@ -58,7 +58,7 @@ runs:
       shell: bash
 
     - name: Setup Node.js
-      uses: actions/setup-node@5e21ff4d9bc1a8cf6de233a3057d20ec6b3fb69d # v3.8.1
+      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
       with:
         node-version: ${{ steps.determine-parameters.outputs.node-version }}
         node-version-file: ${{ steps.determine-parameters.outputs.node-version-file }}
