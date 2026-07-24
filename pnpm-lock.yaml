@@ -7,23 +7,23 @@ settings:
 devDependencies:
   '@tksst/prettier-config':
     specifier: 1.1.0
-    version: 1.1.0(prettier@3.0.3)
+    version: 1.1.0(prettier@3.9.6)
   prettier:
-    specifier: 3.0.3
-    version: 3.0.3
+    specifier: 3.9.6
+    version: 3.9.6
 
 packages:
 
-  /@tksst/prettier-config@1.1.0(prettier@3.0.3):
+  /@tksst/prettier-config@1.1.0(prettier@3.9.6):
     resolution: {integrity: sha512-ve/6JJ9qjI7sls47YDUgtEBX1k2vXKhnnp8+zAjQogUhFEFRmFrPrANKB4ad0+dRVQgRjF1BBrNiJJEhYFOsmQ==}
     peerDependencies:
       prettier: '*'
     dependencies:
-      prettier: 3.0.3
+      prettier: 3.9.6
     dev: true
 
-  /prettier@3.0.3:
-    resolution: {integrity: sha512-L/4pUDMxcNa8R/EthV08Zt42WBO4h1rarVtK0K+QJG0X187OLo7l699jWw0GKuwzkPQ//jMFA/8Xm6Fh3J/DAg==}
+  /prettier@3.9.6:
+    resolution: {integrity: sha512-OpN0zzVdiaiAhxpuuj5efpIS4sY9j7bY6uR5mnj5yPzGkdkjNKSJeUThPb60Jw29QuAZgA4o+/iB49kFiaBX6g==}
     engines: {node: '>=14'}
     hasBin: true
     dev: true
